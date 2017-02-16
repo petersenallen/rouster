@@ -12,7 +12,7 @@ require 'rouster/vagrant'
 class Rouster
 
   # sporadically updated version number
-  VERSION = 0.69
+  VERSION = 0.71
 
   # custom exceptions -- what else do we want them to include/do?
   class ArgumentError        < StandardError; end # thrown by methods that take parameters from users
@@ -212,7 +212,12 @@ class Rouster
           @logger.debug(':instance specified, will connect to existing OpenStack instance')
           inst_details = self.ostack_describe_instance(@passthrough[:instance])
           raise ArgumentError.new(sprintf('No such instance found in OpenStack - %s', @passthrough[:instance])) if inst_details.nil?
-          @passthrough[:host] = inst_details.addresses["NextGen"][0]["addr"]
+          inst_details.addresses.each_key do |address_key|
+            if defined?(inst_details.addresses[address_key].first['addr'])
+              @passthrough[:host] = inst_details.addresses[address_key].first['addr']
+              break
+            end
+          end
         end
       else
         raise ArgumentError.new(sprintf('passthrough :type [%s] unknown, allowed: :aws, :openstack, :local, :remote', @passthrough[:type]))
