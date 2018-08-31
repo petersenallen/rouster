@@ -753,7 +753,7 @@ class Rouster
       raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
     end
 
-    self.ssh_exitcode.push = $?.to_i()
+    self.ssh_exitcode.push( $?.to_i() )
     output
   end
 
