@@ -299,11 +299,11 @@ class Rouster
   # parameters
   # * <command> - the command to run (sudo will be prepended if specified in object instantiation)
   # * [expected_exitcode] - allows for non-0 exit codes to be returned without requiring exception handling
-  def run(command, expected_exitcode=[0])
+  def run( command, expected_exitcode=[0], sudo = self.uses_sudo? )
 
     cmd = {
       :command           => command,
-      :sudo              => self.uses_sudo?,
+      :sudo              => sudo,
       :stdout            => String.new,
       :stderr            => String.new,
       :expected_exitcode => Array( expected_exitcode ),
@@ -378,7 +378,7 @@ class Rouster
         end
       end
     end
-    @ssl.loop
+    @ssh.loop
     cmd
   end
 
