@@ -798,6 +798,19 @@ class Rouster
   end
 
   ##
+  # get_ssh_exitcode
+  #
+  # returns exitcode from commands passed through run()
+  #
+  # if no parameter passed, returns exitcode from the last command run
+  #
+  # parameters
+  # * [index] - positive or negative indexing of LIFO datastructure
+  def get_ssh_exitcode( index = 1 )
+    index.is_a?(Fixnum) and index > 0 ? self.ssh_exitcode[-index] : self.ssh_exitcode[index]
+  end
+
+  ##
   # generate_unique_mac
   #
   # returns a ~unique, valid MAC
