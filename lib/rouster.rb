@@ -752,7 +752,7 @@ class Rouster
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
 
-    self.output.push(output)
+    self.stdout.push(output)
     @logger.debug(sprintf('output: [%s]', output))
 
     unless $?.success?
