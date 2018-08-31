@@ -300,12 +300,22 @@ class Rouster
   # * [expected_exitcode] - allows for non-0 exit codes to be returned without requiring exception handling
   def run(command, expected_exitcode=[0])
 
+    cmd = {
+      :command           => command,
+      :sudo              => self.uses_sudo?,
+      :stdout            => String.new,
+      :stderr            => String.new,
+      :expected_exitcode => Array( expected_exitcode ),
+      :exitcode          => nil,
+      :exitsignal        => nil,
+    }
+
+    cmd[:final_command] = self.uses_sudo? ? sprintf( 'sudo -c "%s"', command ) : command
+
     if @ssh.nil?
       self.connect_ssh_tunnel
     end
 
-    output = nil
-    expected_exitcode = [expected_exitcode] unless expected_exitcode.class.eql?(Array) # yuck, but 2.0 no longer coerces strings into single element arrays
 
     cmd = sprintf('%s%s; echo ec[$?]', self.uses_sudo? ? 'sudo ' : '', command)
     @logger.info(sprintf('vm running: [%s]', cmd)) # TODO decide whether this should be changed in light of passthroughs.. 'remotely'?
@@ -346,6 +356,32 @@ class Rouster
 
     @exitcode ||= 0
     output
+  end
+
+  def remote_exec( cmd )
+    @ssh.open_channel do |channel|
+      channel.exec( cmd[:final_command] ) do |ch, success|
+        unless success
+          error = "FAILED: couldn't execute command remotely `#{cmd[:final_command]}`"
+          @logger.error( error )
+          raise RemoteExecutionError.new( error )
+        end
+        channel.on_data do |ch, data|
+          cmd[:stdout] << data
+        end
+        channel.on_extended_data do |ch, type, data|
+          cmd[:stderr] << data
+        end
+        channel.on_request( 'exit-status' ) do |ch, data|
+          cmd[:exitcode] = data.read_long
+        end
+        channel.on_request( 'exit-status' ) do |ch, data|
+          cmd[:exitstatus] = data.read_long
+        end
+      end
+    end
+    @ssl.loop
+    cmd
   end
 
   ##
