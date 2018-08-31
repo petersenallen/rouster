@@ -767,7 +767,8 @@ class Rouster
   # parameters
   # * [index] - positive or negative indexing of LIFO datastructure
   def get_output(index = 1)
-    index.is_a?(Fixnum) and index > 0 ? self.ssh_stdout[-index] : self.ssh_stdout[index]
+    @logger.warn( 'get_output has been deprecated, please replace with get_ssh_stdout' )
+    get_ssh_stdout( index )
   end
 
   ##
