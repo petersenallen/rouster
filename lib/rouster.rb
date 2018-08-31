@@ -308,7 +308,6 @@ class Rouster
       :stderr            => String.new,
       :expected_exitcode => Array( expected_exitcode ),
       :exitcode          => nil,
-      :exitsignal        => nil,
     }
 
     cmd[:final_command] = self.uses_sudo? ? sprintf( 'sudo bash -c "%s"', command ) : command
@@ -372,9 +371,6 @@ class Rouster
         end
         channel.on_request( 'exit-status' ) do |ch, data|
           cmd[:exitcode] = data.read_long
-        end
-        channel.on_request( 'exit-status' ) do |ch, data|
-          cmd[:exitstatus] = data.read_long
         end
       end
     end
