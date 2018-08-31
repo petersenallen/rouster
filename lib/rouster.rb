@@ -752,7 +752,7 @@ class Rouster
     output = File.read(tmp_file)
     File.delete(tmp_file) or raise InternalError.new(sprintf('unable to delete [%s]: %s', tmp_file, $!))
 
-    self.stdout.push(output)
+    self.ssh_stdout.push(output)
     @logger.debug(sprintf('output: [%s]', output))
 
     unless $?.success?
@@ -779,7 +779,7 @@ class Rouster
   ##
   # get_ssh_stdout
   #
-  # returns output from commands passed through and run()
+  # returns output from commands passed through _run() and run()
   #
   # if no parameter passed, returns stdout from the last command run
   #
