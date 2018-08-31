@@ -346,9 +346,9 @@ class Rouster
     @logger.debug( sprintf( 'output: [%s]',     cmd[:stdout] ) )
     @logger.debug( sprintf( 'ssh_stderr: [%s]', cmd[:stderr] ) )
 
-    unless expected_exitcode.member?( cmd[:exitcode] )
+    unless cmd[:expected_exitcode].member?( cmd[:exitcode] )
       # TODO technically this could be a 'LocalPassthroughExecutionError' now too if local passthrough.. should we update?
-      raise RemoteExecutionError.new("output[#{cmd[:stdout]}], exitcode[#{cmd[:exitcode]}], expected[#{expected_exitcode}]")
+      raise RemoteExecutionError.new("output[#{cmd[:stdout]}], exitcode[#{cmd[:exitcode]}], expected[#{cmd[:expected_exitcode]}]")
     end
 
     @exitcode = cmd[:exitcode]
