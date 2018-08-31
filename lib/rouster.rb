@@ -25,7 +25,7 @@ class Rouster
   class SSHConnectionError   < StandardError; end # thrown by available_via_ssh() -- and potentially _run()
 
   attr_accessor :facts, :last_puppet_run
-  attr_reader :cache, :cache_timeout, :deltas, :exitcode, :logger, :name, :ssh_stdout, :ssh_stderr, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
+  attr_reader :cache, :cache_timeout, :deltas, :logger, :name, :ssh_stdout, :ssh_stderr, :ssh_exitcode, :passthrough, :retries, :sshkey, :unittest, :vagrantbinary, :vagrantfile
 
   ##
   # initialize - object instantiation
@@ -81,12 +81,12 @@ class Rouster
     @ostype    = nil
     @osversion = nil
 
-    @ssh_stdout = Array.new
-    @ssh_stderr = Array.new
-    @cache      = Hash.new
-    @deltas     = Hash.new
+    @ssh_stdout   = Array.new
+    @ssh_stderr   = Array.new
+    @ssh_exitcode = Array.new
+    @cache        = Hash.new
+    @deltas       = Hash.new
 
-    @exitcode = nil
     @ssh      = nil # hash containing the SSH connection object
     @ssh_info = nil # hash containing connection information
 
@@ -293,13 +293,12 @@ class Rouster
   #
   # runs a command inside the Vagrant VM
   #
-  # returns output (STDOUT and STDERR) from command run, sets @exitcode
-  # currently determines exitcode by tacking a 'echo $?' onto the command being run, which is then parsed out before returning
+  # returns output (STDOUT and STDERR) from command run, pushes to self.ssh_exitcode
   #
   # parameters
   # * <command> - the command to run (sudo will be prepended if specified in object instantiation)
   # * [expected_exitcode] - allows for non-0 exit codes to be returned without requiring exception handling
-  def run( command, expected_exitcode=[0], sudo = self.uses_sudo? )
+  def run( command, expected_exitcode = 0, sudo = self.uses_sudo? )
 
     cmd = {
       :command           => command,
@@ -340,8 +339,9 @@ class Rouster
       cmd[:exitcode] = 255
     end
 
-    self.ssh_stdout.push( cmd[:stdout] )
-    self.ssh_stderr.push( cmd[:stderr] )
+    self.ssh_stdout.push(   cmd[:stdout]   )
+    self.ssh_stderr.push(   cmd[:stderr]   )
+    self.ssh_exitcode.push( cmd[:exitcode] )
     @logger.debug( sprintf( 'output: [%s]',     cmd[:stdout] ) )
     @logger.debug( sprintf( 'ssh_stderr: [%s]', cmd[:stderr] ) )
 
@@ -349,8 +349,6 @@ class Rouster
       # TODO technically this could be a 'LocalPassthroughExecutionError' now too if local passthrough.. should we update?
       raise RemoteExecutionError.new("output[#{cmd[:stdout]}], exitcode[#{cmd[:exitcode]}], expected[#{cmd[:expected_exitcode]}]")
     end
-
-    @exitcode = cmd[:exitcode]
 
     cmd[:stdout]
   end
@@ -734,7 +732,7 @@ class Rouster
   # (should be) private method that executes commands on the local host (not guest VM)
   #
   # returns STDOUT|STDERR, raises Rouster::LocalExecutionError on non 0 exit code
-  # sets @exitcode
+  # pushes to @ssh_exitcode
   #
   # parameters
   # * <command> - command to be run
@@ -755,7 +753,7 @@ class Rouster
       raise LocalExecutionError.new(sprintf('command [%s] exited with code [%s], output [%s]', cmd, $?.to_i(), output))
     end
 
-    @exitcode = $?.to_i()
+    self.ssh_exitcode.push = $?.to_i()
     output
   end
 
