@@ -310,7 +310,7 @@ class Rouster
       :exitcode          => nil,
     }
 
-    cmd[:final_command] = self.uses_sudo? ? sprintf( 'sudo bash -c "%s"', command ) : command
+    cmd[:final_command] = cmd[:sudo] ? sprintf( 'sudo bash -c "%s"', command ) : command
 
     if @ssh.nil?
       self.connect_ssh_tunnel
