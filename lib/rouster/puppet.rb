@@ -29,12 +29,16 @@ class Rouster
 
     end
 
-    raw  = self.run(sprintf('facter %s', custom_facts.true? ? '-p' : ''))
-    res  = Hash.new()
+    cmd = 'facter -y' # getting YAML output to handle differences in facter 1.x and 3.x default output
+    cmd << ' -p' if custom_facts.true?
 
-    raw.split("\n").each do |line|
-      next unless line.match(/(\S*?)\s\=\>\s(.*)/)
-      res[$1] = $2
+    raw = self.run(cmd)
+    res = Hash.new
+
+    begin
+      res = YAML.parse(raw)
+    rescue => e
+      raise ExternalError.new(sprintf('unable to parse facter output as YAML[%s], cmd[%s], raw[%s]', e.message, cmd, raw))
     end
 
     if cache.true?
@@ -112,9 +116,9 @@ class Rouster
   # parses input for puppet errors, returns array of strings
   #
   # parameters
-  # * [input] - string to look at, defaults to self.get_output()
+  # * [input] - string to look at, defaults to self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s
   def get_puppet_errors(input=nil)
-    str       = input.nil? ? self.get_output() : input
+    str       = input.nil? ? self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s : input
     errors    = nil
     errors_27 = str.scan(/35merr:.*/)
     errors_30 = str.scan(/Error:.*/)
@@ -135,9 +139,9 @@ class Rouster
   # parses input for puppet notices, returns array of strings
   #
   # parameters
-  # * [input] - string to look at, defaults to self.get_output()
+  # * [input] - string to look at, defaults to self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s
   def get_puppet_notices(input=nil)
-    str        = input.nil? ? self.get_output() : input
+    str        = input.nil? ? self.get_ssh_stdout.to_s + self.get_ssh_stderr.to_s : input
     notices    = nil
     notices_27 = str.scan(/36mnotice:.*/) # not sure when this stopped working
     notices_30 = str.scan(/Notice:.*/)
@@ -210,7 +214,12 @@ class Rouster
 
     raw = self.run(cmd)
 
-    JSON.parse(raw)
+    begin
+      JSON.parse(raw)
+    rescue => e
+      raise ExternalError.new(sprintf('unable to parse hiera output as JSON[%s], cmd[%s], raw[%s]', e.message, cmd, raw))
+    end
+
   end
 
   ##
